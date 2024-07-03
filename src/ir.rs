@@ -2,6 +2,8 @@
 
 pub mod c;
 
+pub mod aura;
+
 /// A trait implemented by IR objects to compile to a given target language.
 pub trait Compilable {
     // TODO: The target language as a type parameter?
