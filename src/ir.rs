@@ -1,6 +1,6 @@
 //! Definitions for the Aura Intermediate Representation (IR).
 
-pub mod program;
+pub mod c;
 pub mod expr;
 pub mod identifier;
 

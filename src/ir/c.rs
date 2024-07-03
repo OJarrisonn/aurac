@@ -5,7 +5,9 @@ use super::{expr::{Atom, Expr}, identifier::Identifier, Compilable};
 /// The IR object for a program. It represents a correct Aura program (syntax and semantics).
 /// 
 /// The program should contain enough information to produce a correct C program.
-pub struct Program {
+/// 
+/// No further processing is needed to produce a C program from this object. Just produce string output.
+pub struct CIR {
     /// The list of C header files to include in the compilation.
     pub includes: Vec<String>,
 
@@ -22,7 +24,7 @@ pub enum Statement {
     Bind{ident: Identifier, type_: Identifier, expr: Expr},
 }
 
-impl Compilable for Program {
+impl Compilable for CIR {
     fn compile(&self) -> String {
         let mut code = String::new();
 
@@ -73,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_program_compile() {
-        let program = Program {
+        let program = CIR {
             includes: vec!["stdio.h".into()],
             
             atoms: vec!["a".into(), "b".into()],

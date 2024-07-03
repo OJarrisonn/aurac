@@ -1,11 +1,11 @@
 use std::io::Write;
 
-use ir::{expr::{Call, Expr, Literal}, identifier::Identifier, program::{Program, Statement}, Compilable};
+use ir::{expr::{Call, Expr, Literal}, identifier::Identifier, c::{CIR, Statement}, Compilable};
 
 mod ir;
 
 fn main() {
-    let program = Program {
+    let program = CIR {
         includes: vec![],
         
         atoms: vec!["a".into(), "b".into()],
