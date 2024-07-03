@@ -1,4 +1,4 @@
-use super::{identifier::Identifier, Compilable};
+use super::{identifier::Identifier, Compilable, Statement};
 
 pub struct Expr {
     pub value: Value,
@@ -10,6 +10,7 @@ pub enum Value {
     Call(Call),
     Atom(Atom),
     Identifier(Identifier),
+    Scope(Scope),
 }
 
 /// The IR object for a primitive literal value.
@@ -19,6 +20,8 @@ pub enum Literal {
     String(String),
     Bool(bool),
 }
+
+pub struct Scope(pub Vec<Statement>);
 
 pub struct Call {
     pub symbol: String,
@@ -40,6 +43,7 @@ impl Compilable for Value {
             Value::Call(call) => call.compile(),
             Value::Atom(atom) => atom.compile(),
             Value::Identifier(identifier) => identifier.compile(),
+            Value::Scope(scope) => scope.compile(),
         }
     }
 }
@@ -52,6 +56,13 @@ impl Compilable for Literal {
             Literal::String(s) => format!("\"{}\"", s),
             Literal::Bool(b) => b.to_string(),
         }
+    }
+}
+
+impl Compilable for Scope {
+    fn compile(&self) -> String {
+        let exprs = self.0.iter().map(|expr| expr.compile()).collect::<Vec<String>>().join(";\n\t");
+        format!("{{\n\t{};\n}}", exprs)
     }
 }
 
