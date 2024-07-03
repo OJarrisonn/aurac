@@ -2,7 +2,7 @@ use std::io::Write;
 
 use ir::{c::{expr::{Call, Expr, Literal, Scope, Value}, identifier::Identifier, FunctionHeader, Statement, StaticBind, CIR}, Compilable};
 
-mod ir;
+pub mod ir;
 
 fn main() {
     let program = CIR {
@@ -16,11 +16,18 @@ fn main() {
                     output: Identifier("Void".into())
                 },
                 body: Scope(vec![
+                    Statement::Bind { 
+                        ident: Identifier("message".into()), 
+                        expr: Expr {
+                            value: Value::Literal(Literal::String("Hello, world!\\n".to_string())),
+                            type_: Identifier("String".into()),
+                        }
+                    },
                     Statement::Expr(Expr {
                         value: Value::Call(Call {
                             symbol: "print".into(),
                             args: vec![
-                                Value::Literal(Literal::String("Hello, world!\\n".to_string())),
+                                Value::Identifier(Identifier("message".into())),
                             ],
                         }),
                         type_: Identifier("Void".into()),
