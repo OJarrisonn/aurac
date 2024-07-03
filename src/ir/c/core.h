@@ -22,6 +22,7 @@ typedef double Float64;
 typedef char Char;
 typedef const char* String;
 typedef uint64_t Atom;
+typedef void Void;
 
 void print(String str) {
     printf("%s", str);

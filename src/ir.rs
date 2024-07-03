@@ -1,8 +1,6 @@
 //! Definitions for the Aura Intermediate Representation (IR).
 
 pub mod c;
-pub mod expr;
-pub mod identifier;
 
 /// A trait implemented by IR objects to compile to a given target language.
 pub trait Compilable {

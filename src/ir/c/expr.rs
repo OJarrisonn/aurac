@@ -1,6 +1,11 @@
 use super::{identifier::Identifier, Compilable};
 
-pub enum Expr {
+pub struct Expr {
+    pub value: Value,
+    pub type_: Identifier,
+}
+
+pub enum Value {
     Literal(Literal),
     Call(Call),
     Atom(Atom),
@@ -17,18 +22,24 @@ pub enum Literal {
 
 pub struct Call {
     pub symbol: String,
-    pub args: Vec<Expr>,
+    pub args: Vec<Value>,
 }
 
 pub struct Atom(String);
 
 impl Compilable for Expr {
     fn compile(&self) -> String {
+        self.value.compile()
+    }
+}
+
+impl Compilable for Value {
+    fn compile(&self) -> String {
         match self {
-            Expr::Literal(literal) => literal.compile(),
-            Expr::Call(call) => call.compile(),
-            Expr::Atom(atom) => atom.compile(),
-            Expr::Identifier(identifier) => identifier.compile(),
+            Value::Literal(literal) => literal.compile(),
+            Value::Call(call) => call.compile(),
+            Value::Atom(atom) => atom.compile(),
+            Value::Identifier(identifier) => identifier.compile(),
         }
     }
 }

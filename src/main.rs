@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use ir::{expr::{Call, Expr, Literal}, identifier::Identifier, c::{CIR, Statement}, Compilable};
+use ir::{c::{expr::{Call, Expr, Literal, Value}, identifier::Identifier, Statement, CIR}, Compilable};
 
 mod ir;
 
@@ -11,13 +11,20 @@ fn main() {
         atoms: vec!["a".into(), "b".into()],
 
         main: vec![
-            Statement::Bind { ident: Identifier::Value("msg".into()), type_: Identifier::Type("String".into()), expr: Expr::Literal(Literal::String("Hello, World!".into())) },
-            Statement::Expr(Expr::Call(Call {
-                symbol: "print".into(),
-                args: vec![
-                    Expr::Identifier(Identifier::Value("msg".into()))
-                ]
-            }))
+            Statement::Bind { ident: Identifier("msg".into()), expr: Expr {
+                type_: Identifier("String".into()),
+                value: Value::Literal(Literal::String("Hello, World!".into()))} 
+            },
+            Statement::Expr(Expr {
+                type_: Identifier("Void".into()),
+                value: Value::Call(Call {
+                    symbol: "print".into(),
+                    args: vec![
+                        Value::Identifier(Identifier("msg".into()))
+                        ]
+                    })
+                }
+            )
         ],
     };
 
