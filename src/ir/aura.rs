@@ -42,7 +42,7 @@ pub struct TypeIdentifier {
 /// Those symbols are bound to the current scope.
 #[derive(Debug, Default)]
 pub struct SymbolDefinition {
-    pub type_: TypeIdentifier,
+    pub type_: Type,
     pub name: String,
 }
 
@@ -52,7 +52,7 @@ pub struct SymbolDefinition {
 /// ```rust
 /// ValueDefinition {
 ///     symbol: SymbolDefinition {
-///         type_: TypeIdentifier { name: "Int" },
+///         type_: Type { name: "Int" },
 ///         name: "x",
 ///     },
 ///     value: ValueLiteral::Int(10),
@@ -75,7 +75,7 @@ pub enum ValueLiteral {
 pub struct FunctionDefinition {
     pub name: String,
     pub args: Vec<SymbolDefinition>,
-    pub output: TypeIdentifier,
+    pub output: Type,
     pub body: Vec<Statement>,
 }
 
@@ -84,6 +84,11 @@ pub struct FunctionLiteral {
     pub args: Vec<SymbolDefinition>,
     pub captures: Vec<SymbolIdentifier>,
     pub output: Expression,
+}
+
+pub struct TypeDefinition {
+    pub symbol: TypeIdentifier,
+    pub type_: Type,
 }
 
 pub enum Statement {
@@ -100,7 +105,7 @@ pub enum Statement {
 
 pub struct Expression {
     pub value: Value,
-    pub type_: TypeIdentifier,
+    pub type_: Type,
 }
 
 pub enum Value {
@@ -110,4 +115,21 @@ pub enum Value {
         args: Vec<Expression>,
     },
     Block(Vec<Statement>),
+}
+
+#[derive(Debug, Default)]
+pub struct Type {
+    pub ident: TypeIdentifier,
+    pub form: TypeForm,
+}
+
+#[derive(Debug, Default)]
+pub enum TypeForm {
+    Struct(Vec<SymbolDefinition>),
+    Enum(Vec<SymbolDefinition>),
+    Compound(Vec<Type>),
+    Alias(TypeIdentifier),
+    Functional(Box<Type>, Box<Type>),
+    #[default]
+    Void,
 }
