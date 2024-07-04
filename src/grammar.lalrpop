@@ -1,0 +1,99 @@
+use std::str::FromStr;
+
+use crate::ir::aura::{defn::*, expr::*, ident::*, type_::*};
+
+grammar;
+
+pub Val: ValueDefinition = {
+    "val" <s:SymbolDef> "=" <v:ValueLit> => ValueDefinition { symbol: s, value: v },
+};
+
+pub Fn: FunctionDefinition = {
+    "fn" <name:SymbolIdent> "(" <args:Comma<SymbolDef>> ")" "->" <output:Type> "=" <v:ValueExpr> => FunctionDefinition {    
+        name: name,
+        args: args,
+        output: output,
+        body: v,
+    },
+    "fn" <name:SymbolIdent> "(" <args:Comma<SymbolDef>> ")" "->" <output:Type> <v:ValueBlock> => FunctionDefinition {    
+        name: name,
+        args: args,
+        output: output,
+        body: v,
+    },
+};
+
+SymbolDef: SymbolDefinition = {
+    <s:SymbolIdent> <t: Type> => SymbolDefinition { name: s, type_: t },
+};
+
+Type: TypeExpression = {
+    <i:TypeIdent> => TypeExpression::Ident(i),
+};
+
+ValueLit: ValueLiteral = {
+    <i:Int> => ValueLiteral::Int(i),
+    <f:Float> => ValueLiteral::Float(f),
+    <s:Str> => ValueLiteral::String(s),
+    <b:Bool> => ValueLiteral::Bool(b),
+};
+
+ValueExpr: Value = {
+    <v:ValueLit> => Value::Literal(v),
+    <s:SymbolIdent> => Value::Symbol(s),
+};
+
+ValueBlock: Value = {
+    "{" <s:SemiColon<Statement>> "}" => Value::Block(s),
+}
+
+Statement: Statement = {
+    <v:ValueExpr> => Statement::Value(v),
+    "return" <v:ValueExpr> => Statement::Return(v),
+    <i:SymbolIdent> "=" <v:ValueExpr> => Statement::Bind{ident: i, value: v},
+};
+
+Int: i32 = {
+    <s:r"[0-9]+"> => i32::from_str(s).unwrap(),
+};
+
+Float: f64 = {
+    <s:r"[0-9]+\.[0-9]+"> => f64::from_str(s).unwrap(),
+};
+
+Str: String = {
+    <s:r#""[^"]*""#> => s[1..s.len()-1].to_string(),
+};
+
+Bool: bool = {
+    "true" => true,
+    "false" => false,
+};
+
+SymbolIdent: Identifier = {
+    <s:r"[a-z][a-z0-9_]*"> => s.to_string().into(),
+};
+
+TypeIdent: Identifier = {
+    <s:r"[A-Z][a-zA-Z0-9]*"> => s.to_string().into(),
+};
+
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
+
+SemiColon<T>: Vec<T> = {
+    <mut v:(<T> ";")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
