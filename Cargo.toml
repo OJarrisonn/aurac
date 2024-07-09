@@ -2,6 +2,7 @@
 name = "aurac"
 version = "0.0.2"
 edition = "2021"
+build = "build.rs"
 
 
 [build-dependencies]
