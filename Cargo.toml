@@ -4,3 +4,4 @@ version = "0.0.2"
 edition = "2021"
 
 [dependencies]
+logos = "0.14.0"
