@@ -1,5 +1,1 @@
-val msg String = "Hello World"
-
-main = {
-    println(msg);
-}
+val msg String = 1000

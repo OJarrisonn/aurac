@@ -1,13 +1,17 @@
-use lex::token::Token;
+use lex::{parse_val, token::Token};
 use logos::Logos;
 
-mod ir;
+#[macro_use]
+extern crate anyhow;
+
+//mod ir;
 mod lex;
 
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let src = include_str!("../examples/hello_world.aura");
     let lexer = Token::lexer(src);
-    let tokens = lexer.take_while(|l| l.is_ok()).map(Result::unwrap).collect::<Vec<_>>();
-    println!("{:?}", tokens);
+    let _ = dbg!(parse_val(lexer)?);
+
+    Ok(())
 }
