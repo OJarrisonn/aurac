@@ -1,0 +1,8 @@
+type Pair = (Int, Int)
+
+type Car = (name String, value Int)
+
+main {
+    car = ("Camaro", 150000) $$ Car;
+    car = { 10; car $$ Car };
+}

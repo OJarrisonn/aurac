@@ -1,0 +1,194 @@
+use crate::ast::{Identifier, Definition, Literal, Statement, TypeExpression, FunctionTypeExpression, Expression, Value};
+
+grammar;
+
+pub Module: Vec<Definition> = {
+    <defn:Definition> => vec![defn],
+    <defn:Definition> <m:Module> => {
+        let mut m = m;
+        m.insert(0, defn);
+        m
+    },
+}
+
+Definition: Definition = {
+    <v:Val> => Definition::Value(v.0, v.1, v.2),
+    <t:Type> => Definition::Type(t.0, t.1),
+    <m:Main> => Definition::Main(m),
+}
+
+Val: (Identifier, TypeExpression, Literal) = {
+    "val" <s:ValueIdentifier> <t:TypeExpression> "=" <l:Literal> => (s, t, l),
+}
+
+Type: (Identifier, TypeExpression) = {
+    "type" <s:TypeIdentifier> "=" <t:TypeExpression> => (s, t),
+}
+
+Main: Vec<Statement> = {
+    "main" "="? <body:BlockExpression> => body, 
+}
+
+Keyword: () = {
+    "alias" => (),
+    "enum" => (),
+    "external" => (),
+    "final" => (),
+    "fn" => (),
+    "main" => (),
+    "struct" => (),
+    "tag" => (),
+    "type" => (),
+    "union" => (),
+    "val" => (),
+}
+
+ValueIdentifier: Identifier = {
+    <v:r"[a-z][a-z0-9_]*"> => Identifier::Value(v.into()),
+}
+
+TypeIdentifier: Identifier = {
+    <t:r"[A-Z][a-zA-Z0-9]*"> => Identifier::Type(t.into()), 
+}
+
+Literal: Literal = {
+    <v:r#""[^"]*""#> => Literal::String(v[1..(v.len()-1)].into()),
+    <v:r"[0-9]+"> => Literal::Int(v.parse().unwrap()),
+    <v:r"[0-9]+\.[0-9]+"> => Literal::Float(v.parse().unwrap()),
+    <v:r"'[^']'"> => Literal::Char(v.chars().nth(1).unwrap()),
+}
+
+Expression: Expression = {
+    #[precedence(level = "0")]
+    <l:Literal> => Expression {value: Value::Literal(l), type_: None},
+    <b:BlockExpression> => Expression {
+        type_: if b.is_empty() {
+            Some(TypeExpression::Identifier(Identifier::Type("Void".into())))
+        } else {
+            match b.last().unwrap() {
+                Statement::Expression(e) => e.type_.clone(),
+                _ => None,
+            }
+        },
+        value: Value::Block(b),
+    },
+
+    <s:StructExpression> => if s.iter().all(|(i, _)| i.is_none()) {
+        Expression{value: Value::Compound(s.into_iter().map(|(_, e)| e).collect()), type_: None}
+    } else {
+        Expression{value: Value::Struct(s), type_: None}
+    },
+    <i:ValueIdentifier> <a:StructExpression> => Expression {
+        value: Value::Call(i, a), 
+        type_: None,
+    },
+    #[precedence(level = "1")]
+    <i:ValueIdentifier> => Expression{value: Value::Identifier(i), type_: None},
+    <e:Expression> "$$" <t:TypeExpression> => Expression{type_: Some(t), ..e},
+    #[precedence(level = "2")] #[assoc(side = "right")]
+    <f:FunctionExpression> => Expression{
+        type_: if f.1.type_.is_none() {
+            None
+        } else {
+            Some(
+                TypeExpression::Function(
+                    FunctionTypeExpression {
+                        parameters: f.0.iter().map(|(_, t)| t.clone()).collect::<Vec<_>>().into(),
+                        returns: f.1.type_.clone().unwrap().into(),
+                    }
+                )
+            )
+        },
+        value: Value::Function(f.0, f.1.into()), 
+    },
+}
+
+BlockExpression: Vec<Statement> = {
+    "{" <ss:(<Statement> ";")*> <s:Statement?> "}" => match s {
+        None => ss,
+        Some(s) => {
+            let mut ss = ss;
+            ss.push(s);
+            ss
+        }
+    },
+}
+
+StructExpression: Vec<(Option<Identifier>, Expression)> = {
+    "(" <v:(<Expression> ",")*> <last:Expression> ","? ")" => {
+        let mut v = v.into_iter().map(|e| (None, e)).collect::<Vec<_>>();
+        v.push((None, last));
+        v
+    },
+
+    "(" <positional:(<Expression> ",")*> <named:(<ValueIdentifier> "=" <Expression> ",")*> <last:(<ValueIdentifier> "=" <Expression>)> ","? ")" => {
+        let mut v = positional.into_iter().map(|e| (None, e)).collect::<Vec<_>>();
+        v.extend(named.into_iter().map(|(i, e)| (Some(i), e)));
+        v.push((Some(last.0), last.1));
+        v
+    },
+}
+
+FunctionExpression: (Vec<(Identifier, TypeExpression)>, Expression) = {
+    <s:StructTypeExpression> "->" <r:Expression> => (s, r),
+    <u:Unit> "->" <r:Expression> => (vec![], r),
+}
+
+TypeExpression: TypeExpression = {
+    <i:TypeIdentifier> => TypeExpression::Identifier(i),
+    <Unit> => TypeExpression::Compound(vec![]),
+    <c:CompoundTypeExpression> => TypeExpression::Compound(c),
+    <s:StructTypeExpression> => TypeExpression::Struct(s),
+    <f:FunctionTypeExpression> => TypeExpression::Function(FunctionTypeExpression { parameters: f.0, returns: f.1.into() }),
+}
+
+CompoundTypeExpression: Vec<TypeExpression> = {
+    "(" <mut ts:(<TypeExpression> ",")*> <t:TypeExpression> ","? ")" => {
+        ts.push(t);
+        ts
+    },
+}
+
+StructTypeExpression: Vec<(Identifier, TypeExpression)> = {
+    "(" <ts:(<TypedIdentifier> ",")*> <t:TypedIdentifier> ","? ")" => {
+        let mut ts = ts;
+        ts.push(t);
+        ts
+    },
+}
+
+FunctionTypeExpression: (Vec<TypeExpression>, TypeExpression) = {
+    <c:CompoundTypeExpression> "->" <r:TypeExpression> => (c, r),
+    <u:Unit> "->" <r:TypeExpression> => (vec![], r),
+}
+
+Unit: () = {
+    "(" ")" => (),
+}
+
+Statement: Statement = {
+    <e:Expression> => Statement::Expression(e),
+    <i: MaybeTypedIdentifier> "=" <e:Expression> => Statement::Bind(i.0, i.1, e),
+}
+
+TypedIdentifier: (Identifier, TypeExpression) = {
+    <i:ValueIdentifier> <t:TypeExpression> => (i, t),
+}
+
+MaybeTypedIdentifier: (Identifier, Option<TypeExpression>) = {
+    <i:ValueIdentifier> <t:TypeExpression?> => (i, t),
+}
+
+// Utils
+
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")+> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    },
+    <v:(<T> ",")+> => v,
+    <v:T> => vec![v],
+}
