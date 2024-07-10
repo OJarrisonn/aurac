@@ -1,0 +1,5 @@
+val msg String = "Hello World"
+
+main = {
+    println(msg);
+}
