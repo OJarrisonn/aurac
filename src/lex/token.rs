@@ -1,6 +1,6 @@
 use logos::Logos;
 
-#[derive(Debug, PartialEq, Logos)]
+#[derive(Debug, PartialEq, Logos, Clone)]
 #[logos(skip r"[ \t\n\f]+")]
 pub enum Token {
     #[token("val")]
@@ -37,6 +37,8 @@ pub enum Token {
     TypeIdentifier(String),
     #[regex("#[a-z][a-z0-9-]*", |lex| lex.slice().to_string())]
     TagIdentifier(String),
+    #[regex("[0-9]+\\.[0-9]+", |lex| lex.slice().parse::<f64>().unwrap())]
+    FloatLiteral(f64),
     #[regex("[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntegerLiteral(i64),
     #[regex(r#""[^"]*""#, |lex| lex.slice()[1..lex.span().len() - 1].to_string())]

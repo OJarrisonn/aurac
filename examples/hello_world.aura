@@ -1,1 +1,3 @@
-val msg String = 1000
+val test (String, Int, (Bool, Bool)) = "Bullshit"
+val name String = "Jorge Harrisonn"
+val age Int = 20
