@@ -12,26 +12,24 @@ pub fn parse_mod(mut lexer: Lexer) -> ParseResult<Mod> {
     let mut module = Mod::default();
     
     loop {
-        let (_, future_token) = lexer.peek();
-
-        match future_token {
+        match lexer.peek().1 {
             Some(Ok(Token::Val)) => {
-                let (l, v) = withctx!(parse_val_defn(lexer), "parsing `val` definition in module");
+                let (l, v) = propagate!(parse_val_defn(lexer).context("parsing `val` definition in module"));
                 lexer = l;
                 module.vals.push(v);
             },
             Some(Ok(Token::Type)) => {
-                let (l, t) = withctx!(parse_type_defn(lexer), "parsing `type` definition in module");
+                let (l, t) = propagate!(parse_type_defn(lexer).context("parsing `type` definition in module"));
                 lexer = l;
                 module.types.push(t);
             },
             Some(Ok(Token::Fn)) => {
-                let (l, f) = withctx!(parse_fn_defn(lexer), "parsing `fn` definition in module");
+                let (l, f) = propagate!(parse_fn_defn(lexer).context("parsing `fn` definition in module"));
                 lexer = l;
                 module.fns.push(f);
             },
             Some(Ok(Token::Main)) => {
-                let (l, m) = withctx!(parse_main_defn(lexer), "parsing `main` definition in module");
+                let (l, m) = propagate!(parse_main_defn(lexer).context("parsing `main` definition in module"));
                 lexer = l;
                 module.main = Some(m);
             },
@@ -60,35 +58,35 @@ pub fn parse_val_defn(lexer: Lexer) -> ParseResult<Val> {
     let (lexer, _) = propagate!(take_exact(lexer, Token::Val).context("expected `val` definition")); 
 
     // `symbol`
-    let (lexer, symbol) = withctx!(parse_value_identifier(lexer), "parsing the symbol of a `val` definition");
+    let (lexer, symbol) = propagate!(parse_value_identifier(lexer).context("parsing the symbol of a `val` definition"));
 
     // `Type`
-    let (lexer, type_) = withctx!(parse_type(lexer), "parsing type in `val` definition");
+    let (lexer, type_) = propagate!(parse_type(lexer).context("parsing type in `val` definition"));
 
     // `=`
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Assign), "parsing `=` in `val` definition");
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Assign).context("parsing `=` in `val` definition"));
 
     // `expression`
-    let (lexer, value) = withctx!(parse_literal(lexer), "parsing literal expression in `val` definition");
+    let (lexer, value) = propagate!(parse_literal(lexer).context("parsing literal expression in `val` definition"));
 
-    ok!(lexer, Val { symbol, type_, value })
+    ParseResult::ok(Val { symbol, type_, value }, lexer)
 }
 
 pub fn parse_type_defn(lexer: Lexer) -> ParseResult<Type> {
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Type), "expected `type` definition");
-    let (lexer, symbol) = withctx!(parse_type_identifier(lexer), "parsing the symbol of a `type` definition");
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Assign), "parsing `=` in `type` definition");
-    let (lexer, type_) = withctx!(parse_type(lexer), "parsing type in `type` definition");
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Type).context("expected `type` definition"));
+    let (lexer, symbol) = propagate!(parse_type_identifier(lexer).context("parsing the symbol of a `type` definition"));
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Assign).context("parsing `=` in `type` definition"));
+    let (lexer, type_) = propagate!(parse_type(lexer).context("parsing type in `type` definition"));
 
     ok!(lexer, Type { symbol, type_ })
 }
 
 pub fn parse_fn_defn(lexer: Lexer) -> ParseResult<Fn> {
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Fn), "expected `fn` definition");
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Fn).context("expected `fn` definition"));
 
-    let (lexer, symbol) = withctx!(parse_value_identifier(lexer), "parsing the symbol of a `fn` definition");
+    let (lexer, symbol) = propagate!(parse_value_identifier(lexer).context("parsing the symbol of a `fn` definition"));
 
-    let (mut lexer, (input, output)) = withctx!(parse_function_signature(lexer), "parsing function signature in `fn` definition");
+    let (mut lexer, (input, output)) = propagate!(parse_function_signature(lexer).context("parsing function signature in `fn` definition"));
 
     // Foresee the next token if it's a `=` or `{`
     let allow_non_block = match lexer.peek() {
@@ -107,7 +105,7 @@ pub fn parse_fn_defn(lexer: Lexer) -> ParseResult<Fn> {
         (_, None) => return err!(lexer, UnexpectedEOF).context("parsing `fn` definition"),
     };
 
-    let (lexer, body) = withctx!(parse_expression(lexer), "parsing expression in `fn` definition");
+    let (lexer, body) = propagate!(parse_expression(lexer).context("parsing expression in `fn` definition"));
 
     // If allow_non_block is true then the body is any expression
     // If allow_non_block is false then the body is a block expression
@@ -129,11 +127,11 @@ pub fn parse_fn_defn(lexer: Lexer) -> ParseResult<Fn> {
 pub fn parse_main_defn(lexer: Lexer) -> ParseResult<Main> {
     let init = lexer.span().end;
     
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Main), "expected `main` definition in {}", init);
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Main).with_context(|lex| format!("expected `main` definition in {}", lexer_read_source(lex, init))));
 
     // `(`, `->`, `=` or `{`
     let (lexer, (input, output)) = match lexer.peek().1 {
-        Some(Ok(Token::LParen)) | Some(Ok(Token::Arrow)) => withctx!(parse_function_signature(lexer), "parsing function signature in `main` definition in {}", init),
+        Some(Ok(Token::LParen)) | Some(Ok(Token::Arrow)) => propagate!(parse_function_signature(lexer).with_context(|lex| format!("parsing function signature in `main` definition in {}", lexer_read_source(lex, init)))),
         Some(Ok(Token::Assign)) | Some(Ok(Token::LBrace)) => (lexer, (vec![], TypeExpression::Identifier(Identifier::Type("Void".to_string())))),
         Some(Ok(token)) => return err!(lexer, UnexpectedToken { 
             token, 
@@ -152,7 +150,7 @@ pub fn parse_main_defn(lexer: Lexer) -> ParseResult<Main> {
         (lexer, false) 
     };
 
-    let (lexer, body) = withctx!(parse_expression(lexer), "parsing expression in `main` definition");
+    let (lexer, body) = propagate!(parse_expression(lexer).context("parsing expression in `main` definition"));
 
     if !allow_non_block {
         match body {
