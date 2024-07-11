@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 
-use crate::lex::{ast::{Mod, Val}, take_exact, token::Token, Lexer, error::ParseError::*};
+use crate::lex::{ast::{Mod, Val}, take_exact, token::Token, Lexer, error::ParseError::*, PeekLexer};
 
 use super::{expr::{parse_literal, parse_value_identifier}, types::parse_type};
 
@@ -10,9 +10,9 @@ pub fn parse_mod(mut lexer: Lexer) -> Result<Mod> {
     let mut module = Mod::default();
     
     loop {
-        let mut peeker = lexer.clone();
-
-        match peeker.next() {
+        let (_, future_token) = lexer.peek();
+        
+        match future_token {
             Some(Ok(Token::Val)) => {
                 let (l, v) = parse_val(lexer).context("parsing `val` definition in module")?;
                 lexer = l;

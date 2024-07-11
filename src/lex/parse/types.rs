@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 
-use crate::lex::{ast::{Identifier, TypeExpression}, token::Token, Lexer, error::ParseError::*};
+use crate::lex::{ast::{Identifier, TypeExpression}, token::Token, Lexer, error::ParseError::*, PeekLexer};
 
 /// Parses a type expression
 /// 
@@ -34,11 +34,9 @@ pub fn parse_compound_type(mut lexer: Lexer) -> Result<(Lexer, Vec<TypeExpressio
     let init = lexer.span().start;            
     
     loop {
-        let mut peeker = lexer.clone();
-
         // Check if the next token is a right parenthesis
         // If so, return the compound type expression
-        if let Some(Ok(Token::RParen)) = peeker.next() {
+        if let (peeker, Some(Ok(Token::RParen))) = lexer.peek() {
             return Ok((peeker, compound))
         }
 
