@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use fn_::parse_function_signature;
 
-use crate::lex::{ast::{Expression, Fn, Mod, Type, Val}, error::ParseError::*, take_exact, token::Token, Lexer, PeekLexer};
+use crate::lex::{ast::{Expression, Fn, Identifier, Main, Mod, Type, TypeExpression, Val}, error::ParseError::*, take_exact, token::Token, Lexer, PeekLexer};
 
 use super::{expr::{parse_expression, parse_literal, parse_type_identifier, parse_value_identifier}, types::parse_type};
 
@@ -30,6 +30,11 @@ pub fn parse_mod(mut lexer: Lexer) -> Result<Mod> {
                 let (l, f) = parse_fn_defn(lexer).context("parsing `fn` definition in module")?;
                 lexer = l;
                 module.fns.push(f);
+            },
+            Some(Ok(Token::Main)) => {
+                let (l, m) = parse_main_defn(lexer).context("parsing `main` definition in module")?;
+                lexer = l;
+                module.main = Some(m);
             },
             Some(Ok(token)) => return Err(UnexpectedToken { 
                 token, 
@@ -120,4 +125,43 @@ pub fn parse_fn_defn(lexer: Lexer) -> Result<(Lexer, Fn)> {
     }
 
     Ok((lexer, Fn { symbol, input, output, body }))
+}
+
+pub fn parse_main_defn(lexer: Lexer) -> Result<(Lexer, Main)> {
+    let lexer = take_exact(lexer, Token::Main).context("expected `main` definition")?;
+
+    // Check if a function signature is present
+    let (_, future_token) = lexer.peek();
+
+    // `(`, `->`, `=` or `{`
+    let (lexer, input, output) = match future_token {
+        Some(Ok(Token::LParen)) | Some(Ok(Token::Arrow)) => parse_function_signature(lexer).context("parsing function signature in `main` definition")?,
+        Some(Ok(Token::Assign)) | Some(Ok(Token::LBrace)) => (lexer, vec![], TypeExpression::Identifier(Identifier::Type("Void".to_string()))),
+        Some(Ok(token)) => return Err(UnexpectedToken { 
+            token, 
+            slice: lexer.slice().into(), 
+            span: lexer.span(), 
+            expected: "`(` or `=`".to_string() 
+        }).context("parsing `main` definition"),
+        Some(Err(_)) => return Err(Unknown).context("parsing `main` definition"),
+        None => return Err(UnexpectedEOF).context("parsing `main` definition"),
+    };
+
+    let (lexer, allow_non_block) = if let (lexer, Some(Ok(Token::Assign))) = lexer.peek() { (lexer, true) } else { (lexer, false) };
+
+    let (lexer, body) = parse_expression(lexer).context("parsing expression in `main` definition")?;
+
+    if !allow_non_block {
+        match body {
+            Expression::Block(_) => (),
+            _ => return Err(UnexpectedToken { 
+                token: Token::LBrace, 
+                slice: lexer.slice().into(), 
+                span: lexer.span(), 
+                expected: "block expression or `=`".to_string() 
+            }).context("parsing `main` definition"),
+        }
+    }
+
+    Ok((lexer, Main { input, output, body }))
 }

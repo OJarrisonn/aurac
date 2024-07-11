@@ -5,6 +5,7 @@ pub struct Mod {
     pub vals: Vec<Val>,
     pub types: Vec<Type>,
     pub fns: Vec<Fn>,
+    pub main: Option<Main>,
 }
 
 #[derive(Debug)]
@@ -23,6 +24,13 @@ pub struct Type {
 #[derive(Debug)]
 pub struct Fn {
     pub symbol: Identifier,
+    pub input: Vec<(Identifier, TypeExpression)>,
+    pub output: TypeExpression,
+    pub body: Expression,
+}
+
+#[derive(Debug)]
+pub struct Main {
     pub input: Vec<(Identifier, TypeExpression)>,
     pub output: TypeExpression,
     pub body: Expression,

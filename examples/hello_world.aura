@@ -1,4 +1,10 @@
 val person Person = "Harrisonn"
 type Person = (String, Int)
 
-fn new_person(name String, age Int) = (name, age)
+fn new_person -> = (name, age)
+
+main {
+    println;
+    new_person;
+    (10, 40)
+}

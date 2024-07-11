@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 
-use crate::lex::{self, ast::{Identifier, TypeExpression}, take_exact, token::Token, Lexer, PeekLexer};
+use crate::lex::{self, ast::{Identifier, TypeExpression}, parse::types::parse_type, take_exact, token::Token, Lexer, PeekLexer};
 
 
 /// Parse a function signature in a function definition
@@ -8,8 +8,20 @@ use crate::lex::{self, ast::{Identifier, TypeExpression}, take_exact, token::Tok
 /// Syntax:
 ///     ( ValueIdentifier TypeExpression [, ValueIdentifier TypeExpression]* ) -> TypeExpression
 /// TODO: Show where the error happened in the source code
-/// TODO: Implicit void input type
 pub fn parse_function_signature(lexer: Lexer) -> Result<(Lexer, Vec<(Identifier, TypeExpression)>, TypeExpression)> {
+    if let (peeker, Some(Ok(Token::Arrow))) = lexer.peek() {
+        if let (_, Some(Ok(Token::Assign))) = peeker.peek() {
+            return Ok((peeker, vec![], TypeExpression::Identifier(Identifier::Type("Void".to_string()))))
+        }
+
+        if let (_, Some(Ok(Token::LBrace))) = peeker.peek() {
+            return Ok((peeker, vec![], TypeExpression::Identifier(Identifier::Type("Void".to_string()))))
+        }
+
+        let (lexer, output) = parse_type(lexer).context("parsing function return type")?;
+
+        return Ok((lexer, vec![], output))
+    }
     let mut lexer = take_exact(lexer, Token::LParen).context("expected `(` at the start of a function signature")?;
 
     let mut params = vec![];
