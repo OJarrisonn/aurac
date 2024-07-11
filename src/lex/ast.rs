@@ -31,6 +31,7 @@ pub enum Expression {
     Literal(Literal),
     Identifier(Identifier),
     Compound(Vec<Expression>),
+    Block(Vec<Expression>),
 }
 
 #[derive(Debug)]

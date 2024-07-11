@@ -88,6 +88,12 @@ pub fn parse_expression(mut lexer: Lexer) -> Result<(Lexer, Expression)> {
             .map(|(l, e)| (l, Expression::Compound(e)))
             .with_context(|| format!("parsing compound expression at `{}`", src))
         },
+        Some(Ok(LBrace)) => {
+            let src = lexer.source()[lexer.span().start..lexer.span().end].trim();
+            block_expression(lexer)
+            .map(|(l, e)| (l, Expression::Block(e)))
+            .with_context(|| format!("parsing block expression at `{}`", src))
+        },
         Some(Ok(token)) => bail!(UnexpectedToken { 
             token, 
             slice: lexer.slice().into(), 
@@ -130,6 +136,43 @@ pub fn parse_compound_expression(mut lexer: Lexer) -> Result<(Lexer, Vec<Express
                 span: lexer.span(), 
                 expected: "`,` or `)`".to_string() 
             }).with_context(|| format!("parsing compound expression `{}`", lexer.source()[init..lexer.span().end].trim())),
+            Some(Err(_)) => bail!(Unknown),
+            None => bail!(UnexpectedEOF),
+        }
+    }
+}
+
+pub fn block_expression(mut lexer: Lexer) -> Result<(Lexer, Vec<Expression>)> {
+    let mut block = vec![];
+    let init = lexer.span().start;            
+    
+    loop {
+        // Check if the next token is a right parenthesis
+        // If so, return the compound expression
+        if let (peeker, Some(Ok(RBrace))) = lexer.peek() {
+            return Ok((peeker, block))
+        }
+
+        let (l, e) = {
+            let src = lexer.source()[init..lexer.span().end].trim();
+            parse_expression(lexer).with_context(|| format!("parsing block expression `{}`", src))?
+        };
+
+        lexer = l;
+        block.push(e);
+
+        match lexer.next() {
+            // End of compound expression
+            Some(Ok(RBrace)) => return Ok((lexer, block)), 
+            // Next field in compound expression
+            Some(Ok(Semicolon)) => continue,
+            // Unexpected token
+            Some(Ok(token)) => return Err(UnexpectedToken { 
+                token, 
+                slice: lexer.slice().into(), 
+                span: lexer.span(), 
+                expected: "`,` or `}`".to_string() 
+            }).with_context(|| format!("parsing block expression `{}`", lexer.source()[init..lexer.span().end].trim())),
             Some(Err(_)) => bail!(Unknown),
             None => bail!(UnexpectedEOF),
         }
