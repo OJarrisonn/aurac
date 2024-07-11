@@ -23,6 +23,8 @@ pub struct Type {
 #[derive(Debug)]
 pub struct Fn {
     pub symbol: Identifier,
+    pub input: Vec<(Identifier, TypeExpression)>,
+    pub output: TypeExpression,
     pub body: Expression,
 }
 

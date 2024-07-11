@@ -1,8 +1,11 @@
 use anyhow::{Context, Result};
+use fn_::parse_function_signature;
 
-use crate::lex::{ast::{Mod, Type, Val}, error::ParseError::*, take_exact, token::Token, Lexer, PeekLexer};
+use crate::lex::{ast::{Expression, Fn, Mod, Type, Val}, error::ParseError::*, take_exact, token::Token, Lexer, PeekLexer};
 
-use super::{expr::{parse_literal, parse_type_identifier, parse_value_identifier}, types::parse_type};
+use super::{expr::{parse_expression, parse_literal, parse_type_identifier, parse_value_identifier}, types::parse_type};
+
+pub mod fn_;
 
 /// Parse a module
 /// A module is an Aura source code file with global definitions for the module
@@ -22,6 +25,11 @@ pub fn parse_mod(mut lexer: Lexer) -> Result<Mod> {
                 let (l, t) = parse_type_defn(lexer).context("parsing `type` definition in module")?;
                 lexer = l;
                 module.types.push(t);
+            },
+            Some(Ok(Token::Fn)) => {
+                let (l, f) = parse_fn_defn(lexer).context("parsing `fn` definition in module")?;
+                lexer = l;
+                module.fns.push(f);
             },
             Some(Ok(token)) => return Err(UnexpectedToken { 
                 token, 
@@ -69,4 +77,47 @@ pub fn parse_type_defn(lexer: Lexer) -> Result<(Lexer, Type)> {
     let (lexer, type_) = parse_type(lexer).context("parsing type in `type` definition")?;
 
     Ok((lexer, Type { symbol, type_ }))
+}
+
+pub fn parse_fn_defn(lexer: Lexer) -> Result<(Lexer, Fn)> {
+    let lexer = take_exact(lexer, Token::Fn).context("expected `fn` definition")?;
+
+    let (lexer, symbol) = parse_value_identifier(lexer).context("parsing the symbol of a `fn` definition")?;
+
+    let (mut lexer, input, output) = parse_function_signature(lexer).context("parsing function signature in `fn` definition")?;
+
+    // Foresee the next token if it's a `=` or `{`
+    let allow_non_block = match lexer.peek() {
+        (peeker, Some(Ok(Token::Assign))) => {
+            lexer = peeker;
+            true
+        },
+        (_, Some(Ok(Token::LBrace))) => false,
+        (_, Some(Ok(token))) => return Err(UnexpectedToken { 
+            token, 
+            slice: lexer.slice().into(), 
+            span: lexer.span(), 
+            expected: "`{` or `=`".to_string() 
+        }).context("parsing `fn` definition"),
+        (_, Some(Err(_))) => return Err(Unknown).context("parsing `fn` definition"),
+        (_, None) => return Err(UnexpectedEOF).context("parsing `fn` definition"),
+    };
+
+    let (lexer, body) = parse_expression(lexer).context("parsing expression in `fn` definition")?;
+
+    // If allow_non_block is true then the body is any expression
+    // If allow_non_block is false then the body is a block expression
+    if !allow_non_block {
+        match body {
+            Expression::Block(_) => (),
+            _ => return Err(UnexpectedToken { 
+                token: Token::LBrace, 
+                slice: lexer.slice().into(), 
+                span: lexer.span(), 
+                expected: "block expression or `=`".to_string() 
+            }).context("parsing `fn` definition"),
+        }
+    }
+
+    Ok((lexer, Fn { symbol, input, output, body }))
 }

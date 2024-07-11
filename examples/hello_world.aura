@@ -1,2 +1,4 @@
 val person Person = "Harrisonn"
 type Person = (String, Int)
+
+fn new_person(name String, age Int) = (name, age)
