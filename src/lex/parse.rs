@@ -1,4 +1,8 @@
+use std::fmt::Debug;
+
 use anyhow::{Context, Result};
+
+use crate::utils::{FromFailure, Propagate};
 
 use super::Lexer;
 
@@ -18,7 +22,7 @@ pub struct ParseResult<'source, T> {
     pub result: Result<T>
 }
 
-impl <'source, T> ParseResult<'source, T> {
+impl <'source, T: Debug> ParseResult<'source, T> {
     /// Create a new parse result
     pub fn new(result: Result<T>, lexer: Lexer<'source>) -> Self {
         Self {
@@ -66,6 +70,11 @@ impl <'source, T> ParseResult<'source, T> {
         (self.lexer, self.result.unwrap())
     }
 
+    /// Unwrap the error result into a tuple of the lexer and the err result
+    pub fn unwrap_err(self) -> (Lexer<'source>, anyhow::Error) {
+        (self.lexer, self.result.unwrap_err())
+    }
+
     /// Map the result of the parse result
     pub fn map<U, F>(self, f: F) -> ParseResult<'source, U> 
     where 
@@ -106,5 +115,29 @@ impl <'source, T> ParseResult<'source, T> {
             result: self.result.context(context),
             lexer: self.lexer,
         }
+    }
+}
+
+impl<'source, T: Debug> FromFailure<(Lexer<'source>, anyhow::Error)> for ParseResult<'source, T> {
+    fn from(f: (Lexer<'source>, anyhow::Error)) -> Self {
+        Self::err(f.1, f.0)
+    }
+}
+
+impl<'source, T: Debug> Propagate<(Lexer<'source>, anyhow::Error)> for ParseResult<'source, T> {
+    type Success = (Lexer<'source>, T);
+
+    type Failure = (Lexer<'source>, anyhow::Error);
+
+    fn is_success(&self) -> bool {
+        self.is_ok()
+    }
+
+    fn unwrap(self) -> Self::Success {
+        self.unwrap()
+    }
+
+    fn unwrap_fail(self) -> Self::Failure {
+        self.unwrap_err()
     }
 }

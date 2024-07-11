@@ -57,7 +57,7 @@ pub fn parse_mod(mut lexer: Lexer) -> ParseResult<Mod> {
 /// ```
 pub fn parse_val_defn(lexer: Lexer) -> ParseResult<Val> {
     // `val`
-    let (lexer, _) = withctx!(take_exact(lexer, Token::Val), "expected `val` definition"); 
+    let (lexer, _) = propagate!(take_exact(lexer, Token::Val).context("expected `val` definition")); 
 
     // `symbol`
     let (lexer, symbol) = withctx!(parse_value_identifier(lexer), "parsing the symbol of a `val` definition");
