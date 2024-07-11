@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub struct Mod {
     pub vals: Vec<Val>,
     pub types: Vec<Type>,
+    pub fns: Vec<Fn>,
 }
 
 #[derive(Debug)]
@@ -20,6 +21,25 @@ pub struct Type {
 }
 
 #[derive(Debug)]
+pub struct Fn {
+    pub symbol: Identifier,
+    pub body: Expression,
+}
+
+#[derive(Debug)]
+pub enum Expression {
+    Literal(Literal),
+    Identifier(Identifier),
+    Compound(Vec<Expression>),
+}
+
+#[derive(Debug)]
+pub enum TypeExpression {
+    Identifier(Identifier),
+    Compound(Vec<TypeExpression>)
+}
+
+#[derive(Debug)]
 pub enum Identifier {
     Value(String),
     Type(String),
@@ -31,12 +51,6 @@ pub enum Literal {
     Integer(i64),
     Float(f64),
     String(String),
-}
-
-#[derive(Debug)]
-pub enum TypeExpression {
-    Identifier(Identifier),
-    Compound(Vec<TypeExpression>)
 }
 
 impl Display for Identifier {
