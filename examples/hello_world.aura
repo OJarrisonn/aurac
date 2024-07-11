@@ -5,6 +5,6 @@ fn new_person -> = (name, age)
 
 main {
     println;
-    new_person;
+    new-person;
     (10, 40)
 }

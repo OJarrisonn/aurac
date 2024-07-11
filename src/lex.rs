@@ -1,5 +1,6 @@
 use anyhow::Result;
 use error::ParseError::*;
+use parse::ParseResult;
 use token::Token;
 
 pub mod token;
@@ -26,11 +27,15 @@ impl<'lexer> PeekLexer<'lexer> for Lexer<'lexer> {
 }
 
 /// Take the next token from the lexer and check if it is the expected token
-pub fn take_exact(mut lexer: Lexer, token: Token) -> Result<Lexer> {
+pub fn take_exact(mut lexer: Lexer, token: Token) -> ParseResult<()> {
     match lexer.next() {
-        Some(Ok(t)) if t == token => Ok(lexer),
-        Some(Ok(token)) => bail!(UnexpectedToken { expected: format!("{:?}", token), token, slice: lexer.slice().into(),span: lexer.span() }),
-        Some(Err(_)) => bail!(Unknown),
-        None => bail!(UnexpectedEOF),
+        Some(Ok(t)) if t == token => ok!(lexer),
+        Some(Ok(token)) => err!(lexer, UnexpectedToken { expected: format!("{:?}", token), token, slice: lexer.slice().into(),span: lexer.span() }),
+        Some(Err(_)) => err!(lexer, Unknown),
+        None => err!(lexer, UnexpectedEOF),
     }
+}
+
+pub fn lexer_read_source<'source>(lexer: &Lexer<'source>, init: usize) -> &'source str {
+    lexer.source()[init..lexer.span().end].trim()
 }
