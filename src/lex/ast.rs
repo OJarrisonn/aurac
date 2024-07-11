@@ -3,6 +3,7 @@ use std::fmt::Display;
 #[derive(Debug, Default)]
 pub struct Mod {
     pub vals: Vec<Val>,
+    pub types: Vec<Type>,
 }
 
 #[derive(Debug)]
@@ -10,6 +11,12 @@ pub struct Val {
     pub symbol: Identifier,
     pub type_: TypeExpression,
     pub value: Literal,
+}
+
+#[derive(Debug)]
+pub struct Type {
+    pub symbol: Identifier,
+    pub type_: TypeExpression,
 }
 
 #[derive(Debug)]

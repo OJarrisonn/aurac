@@ -1,3 +1,2 @@
-val test (String, Int, ) = "Bullshit"
-val name String = "Jorge Harrisonn"
-val age Int = 20
+val person Person = "Harrisonn"
+type Person = (String, Int)
