@@ -107,3 +107,20 @@ impl<L, R> From<Either<L, R>> for Result<L, R> {
         }
     }
 }
+
+pub trait Propagate<F>: FromFailure<F> {
+    type Success;
+    type Failure;
+
+    fn is_success(&self) -> bool;
+    fn is_failure(&self) -> bool {
+        !self.is_success()
+    }
+
+    fn unwrap(self) -> Self::Success;
+    fn unwrap_fail(self) -> Self::Failure;
+}
+
+pub trait FromFailure<F> {
+    fn from(f: F) -> Self;
+}

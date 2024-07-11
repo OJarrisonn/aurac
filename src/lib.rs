@@ -36,3 +36,14 @@ macro_rules! withctx {
         }
     }};
 }
+
+#[macro_export]
+macro_rules! propagate {
+    ($value:expr) => {
+        if (crate::utils::Propagate::is_success(&$value)) {
+            crate::utils::Propagate::unwrap($value)
+        } else {
+            return crate::utils::FromFailure::from(crate::utils::Propagate::unwrap_fail($value))
+        }
+    };
+}
