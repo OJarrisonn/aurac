@@ -18,6 +18,7 @@ macro_rules! err {
 }
 
 #[macro_export]
+#[deprecated(since = "0.0.2", note = "Use the `propagate!` macro instead")]
 macro_rules! withctx {
     ($result:expr, $ctx:literal, $init:expr) => {{
         let ParseResult { result, lexer } = $result.with_context(|lex| format!($ctx, lex.source()[$init..lex.span().end].trim()));

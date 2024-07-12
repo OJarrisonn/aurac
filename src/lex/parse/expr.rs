@@ -76,6 +76,10 @@ pub fn parse_literal(mut lexer: Lexer) -> ParseResult<Literal> {
     }
 }
 
+
+/// Parse an expression
+/// 
+/// Expressions in Aura may be parenthized, literals, identifiers, calls, blocks or binary operations.
 pub fn parse_expression(mut lexer: Lexer) -> ParseResult<Expression> {
     let init = lexer.span().end;
     match lexer.next() {
