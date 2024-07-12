@@ -107,3 +107,44 @@ impl<L, R> From<Either<L, R>> for Result<L, R> {
         }
     }
 }
+
+/// alias for `propagate!`
+/// 
+/// This trait is used to unwrap successful values or short circuit the function returning the error
+pub trait Propagate<F>: FromFailure<F> {
+    /// The type that is unwraped if the value is a success
+    type Success;
+    /// The type that is unwraped if the value is a failure
+    /// The type implementing Propagate must implement FromFailure<Self::Failure>
+    type Failure;
+
+    /// Checks if the value is a success
+    fn is_success(&self) -> bool;
+
+    /// Checks if the value is a failure
+    fn is_failure(&self) -> bool {
+        !self.is_success()
+    }
+
+    /// Unwraps the value if it is a success
+    /// 
+    /// # Panics
+    /// If the value isn't a success
+    fn unwrap(self) -> Self::Success;
+
+    /// Unwraps the value if it is a failure
+    /// 
+    /// # Panics
+    /// If the value isn't a failure
+    fn unwrap_fail(self) -> Self::Failure;
+}
+
+/// This trait is used to convert a failure into a value
+/// 
+/// Is expected that if T implements FromFailure<F> then T implements Propagate<F> and T::Failure == F
+/// 
+/// This is used by the `propagate!` macro to convert the failure into a value and let the type inferece change the Success value
+pub trait FromFailure<F> {
+    /// Convert the failure into a value
+    fn from(f: F) -> Self;
+}

@@ -36,3 +36,19 @@ macro_rules! withctx {
         }
     }};
 }
+
+/// The propagate macro is used to unwrap a type that implements Propagate<F> if it's success or short circuit the function if it's a failure returning the error
+/// 
+/// Implement the trait `aurac::utils::Propagate` for your type to use this macro
+#[macro_export]
+macro_rules! propagate {
+    ($value:expr) => {{
+        let res = $value;
+
+        if (crate::utils::Propagate::is_success(&res)) {
+            crate::utils::Propagate::unwrap(res)
+        } else {
+            return crate::utils::FromFailure::from(crate::utils::Propagate::unwrap_fail(res))
+        }
+    }};
+}
